@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         B站动态助手
 // @namespace    https://github.com/2540709491/bilibili-dynamic-picker
-// @version      2.5.0
+// @version      2.5.1
 // @description  通过 Bilibili 官方 API 快速定位指定时间段的动态，支持批量删除与自定义延迟
 // @author       SXM
 // @match        https://space.bilibili.com/*/dynamic
@@ -154,8 +154,8 @@
         <div id="api-jumper-panel" style="position:fixed;top:80px;right:20px;z-index:10000;
             background:white;padding:20px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);
             width:400px;font-family:sans-serif;">
-            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #00a1d6;padding-bottom:10px;">
-                <h3 style="margin:0;font-size:16px;color:#333;">📅 API 跳转 v2.5</h3>
+            <div id="api-panel-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #00a1d6;padding-bottom:10px;cursor:move;">
+                <h3 style="margin:0;font-size:16px;color:#333;">📅 API 跳转 v2.5.1</h3>
                 <button id="api-close-btn" style="background:none;border:none;font-size:18px;color:#999;cursor:pointer;">✕</button>
             </div>
             ${createDatePickerHTML('start', '起始时间')}
@@ -191,6 +191,39 @@
             </div>
         </div>`;
         document.body.appendChild(panel);
+
+        // 拖拽功能
+        const panelEl = document.getElementById('api-jumper-panel');
+        const headerEl = document.getElementById('api-panel-header');
+        let isDragging = false, startX, startY, initialLeft, initialTop;
+
+        headerEl.addEventListener('mousedown', function(e) {
+            // 避免拖拽时误触关闭按钮
+            if (e.target.id === 'api-close-btn') return;
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = panelEl.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+            panelEl.style.right = 'auto'; // 取消右侧定位，改用left/top
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', onDragEnd);
+        });
+
+        function onDrag(e) {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            panelEl.style.left = (initialLeft + dx) + 'px';
+            panelEl.style.top = (initialTop + dy) + 'px';
+        }
+
+        function onDragEnd() {
+            isDragging = false;
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('mouseup', onDragEnd);
+        }
 
         const currentYear = new Date().getFullYear();
         ['start', 'end'].forEach(prefix => {
@@ -486,7 +519,6 @@
         let success = 0, fail = 0;
         for (let i = 0; i < ids.length; i++) {
             try {
-                // 删除间隔稍长，避免触发风控
                 await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1200));
                 const resp = await fetch(`${DELETE_API}?csrf=${csrf}`, {
                     method: 'POST',
@@ -497,7 +529,6 @@
                 const json = await resp.json();
                 if (json.code === 0) {
                     success++;
-                    // 从列表中移除
                     const card = document.querySelector(`.dynamic-checkbox[data-id="${ids[i]}"]`)?.parentElement;
                     if (card) card.style.display = 'none';
                 } else {
@@ -510,7 +541,6 @@
             }
         }
         alert(`删除完成：成功 ${success} 条，失败 ${fail} 条。`);
-        // 刷新统计数
         const remaining = document.querySelectorAll('.dynamic-checkbox:checked').length;
         document.getElementById('api-delete-selected').textContent = `🗑 删除选中 (${remaining})`;
     }
@@ -528,5 +558,5 @@
         setTimeout(createPanel, 1000);
     }
 
-    console.log('%c[API跳转] v2.5 已加载！支持批量删除+自定义延迟','color:#667eea;font-weight:bold;background:#f0f4ff;padding:4px 8px;border-radius:4px;');
+    console.log('%c[API跳转] v2.5.1 已加载！支持拖拽面板+批量删除+自定义延迟','color:#667eea;font-weight:bold;background:#f0f4ff;padding:4px 8px;border-radius:4px;');
 })();
