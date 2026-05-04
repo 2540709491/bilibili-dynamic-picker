@@ -1,6 +1,6 @@
 B站动态 API 跳转助手
 本项目由DeepSeekV4生成,参考https://github.com/tongle2025/bilibili-dynamic-jumper
-
+并附带一个黑历史删除工具.
 通过 Bilibili 官方 API 快速定位 UP 主在指定日期发布的动态，彻底告别无限滚动。
 
 ✨ 功能特点
